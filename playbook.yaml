@@ -1,0 +1,31 @@
+---
+- hosts: all
+  become: true
+  tasks:
+  - name: Add Mongo apt signing key
+    apt_key:
+      url: https://www.mongodb.org/static/pgp/server-4.4.asc
+      state: present
+
+  - name: Add Mongo repository into sources list
+    apt_repository:
+      repo: 'deb https://repo.mongodb.org/apt/{{ ansible_distribution|lower }}  {{ ansible_distribution_release|lower }}/mongodb-org/4.4 multiverse'
+      state: present
+
+  - name: Wait for /var/lib/dpkg/lock-frontend to be released   
+    shell: while lsof /var/lib/dpkg/lock-frontend ; do sleep 10; done;
+
+  - name: Update the repository cache and install mongodb if is not present
+    apt:
+      name: mongodb-org
+      state: latest
+      update_cache: yes
+      
+  - name: run mongodb
+    service: name=mongod state=started enabled=yes
+
+  - name: Get mongo version
+    command: mongo --version
+
+    register: out
+  - debug: var=out.stdout_lines
